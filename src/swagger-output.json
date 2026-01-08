@@ -1,0 +1,179 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Restaurant API",
+    "description": "Auto-generated documentation for the Restaurant Reservation API including management and booking systems.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:9000/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Restaurant",
+      "description": "Endpoints for managing restaurant details and operating hours"
+    },
+    {
+      "name": "Table",
+      "description": "Endpoints for managing physical tables and capacities"
+    },
+    {
+      "name": "Reservation",
+      "description": "Core booking logic and availability checking"
+    }
+  ],
+  "paths": {
+    "/api/restaurants": {
+      "post": {
+        "tags": [
+          "Restaurant"
+        ],
+        "description": "",
+        "responses": {
+          "501": {
+            "description": "Not Implemented"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Restaurant"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/api/restaurants/{id}/tables": {
+      "post": {
+        "tags": [
+          "Restaurant"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Not Implemented"
+          }
+        }
+      }
+    },
+    "/api/api/restaurants/{id}": {
+      "get": {
+        "tags": [
+          "Restaurant"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Not Implemented"
+          }
+        }
+      }
+    },
+    "/api/reservations": {
+      "post": {
+        "tags": [
+          "Reservation"
+        ],
+        "description": "",
+        "responses": {
+          "501": {
+            "description": "Not Implemented"
+          }
+        }
+      }
+    },
+    "/api/reservations/availability": {
+      "get": {
+        "tags": [
+          "Reservation"
+        ],
+        "description": "",
+        "responses": {
+          "501": {
+            "description": "Not Implemented"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Restaurant": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "The Gourmet Bistro"
+          },
+          "totalTables": {
+            "type": "number",
+            "example": 5
+          },
+          "openingTime": {
+            "type": "string",
+            "example": "09:00"
+          },
+          "closingTime": {
+            "type": "string",
+            "example": "22:00"
+          }
+        }
+      },
+      "Reservation": {
+        "type": "object",
+        "properties": {
+          "customerName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "uniqueReference": {
+            "type": "string",
+            "example": "res-09834-khdfsdo-poowiepw"
+          },
+          "phone": {
+            "type": "string",
+            "example": "555-0199"
+          },
+          "partySize": {
+            "type": "number",
+            "example": 4
+          },
+          "startDateTime": {
+            "type": "string",
+            "example": "2024-06-01T19:00:00Z"
+          },
+          "durationMinutes": {
+            "type": "number",
+            "example": 90
+          }
+        }
+      }
+    }
+  }
+}
