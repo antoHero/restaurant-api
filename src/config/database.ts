@@ -8,4 +8,4 @@ const sequelize = new Sequelize({
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
 });
 
-export default { sequelize };
+export default sequelize;
