@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:migrate": "ts-node scripts/migrate.ts"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.1.11",
+    "sequelize-cli": "^6.6.5",
     "supertest": "^7.2.2",
     "typescript": "^5.9.3"
   }
