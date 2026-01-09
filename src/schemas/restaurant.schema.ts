@@ -31,10 +31,9 @@ export const getRestaurantsSchema = z.object({
 
 export const addTableSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^\d+$/, "Restaurant ID must be a numeric string"),
+    slug: z.string(),
   }),
   body: z.object({
-    restaurantId: z.number().int(),
     tableNumber: z.number().int().min(1, "Table number must be at least 1"),
     capacity: z.number().int().min(1, "Capacity must be at least 1 person"),
   })

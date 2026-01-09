@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
-import slugify from "slugify";
-import sequelize from "../config/database";
-import { Restaurant, Table } from "../models";
+import { Request, Response } from 'express';
+import slugify from 'slugify';
+import sequelize from '../config/database';
+import { Restaurant, Table } from '../models';
 
 export const createRestaurant = async (req: Request, res: Response) => {
   // #swagger.tags = ['Restaurant']
@@ -11,7 +11,7 @@ export const createRestaurant = async (req: Request, res: Response) => {
 
     if (!name || !openingTime || !closingTime) {
       return res.status(400).json({
-        error: "Missing required fields: name, openingTime, closingTime",
+        error: 'Missing required fields: name, openingTime, closingTime',
       });
     }
 
@@ -20,7 +20,7 @@ export const createRestaurant = async (req: Request, res: Response) => {
     if (whereToEat) {
       return res
         .status(400)
-        .json({ message: "This restaurant already exists" });
+        .json({ message: 'This restaurant already exists' });
     }
 
     const slug = slugify(name, {
@@ -42,7 +42,7 @@ export const createRestaurant = async (req: Request, res: Response) => {
       }
     );
 
-    if (totalTables && typeof totalTables === "number" && totalTables > 0) {
+    if (totalTables && typeof totalTables === 'number' && totalTables > 0) {
       const tablesData = Array.from({ length: totalTables }, (_, i) => ({
         restaurantId: restaurant.id,
         tableNumber: i + 1,
@@ -54,14 +54,14 @@ export const createRestaurant = async (req: Request, res: Response) => {
     }
 
     const result = await Restaurant.findByPk(restaurant.id, {
-      include: [{ model: Table, as: "tables" }],
+      include: [{ model: Table, as: 'tables' }],
     });
 
     await t.commit();
 
     return res
       .status(201)
-      .json({ message: "The restaurant has been created", data: restaurant });
+      .json({ message: 'The restaurant has been created', data: restaurant });
   } catch (error: any) {
     await t.rollback();
     return res.status(500).json({ error: error.message });
@@ -71,21 +71,21 @@ export const createRestaurant = async (req: Request, res: Response) => {
 export const getRestaurants = async (req: Request, res: Response) => {
   try {
     const { sort_dir, limit } = req.query;
-    let sortDirection: "asc" | "desc" = "desc";
+    let sortDirection: 'asc' | 'desc' = 'desc';
     if (
-      typeof sort_dir === "string" &&
-      (sort_dir.toLowerCase() === "asc" || sort_dir.toLowerCase() === "desc")
+      typeof sort_dir === 'string' &&
+      (sort_dir.toLowerCase() === 'asc' || sort_dir.toLowerCase() === 'desc')
     ) {
-      sortDirection = sort_dir.toLowerCase() as "asc" | "desc";
+      sortDirection = sort_dir.toLowerCase() as 'asc' | 'desc';
     }
 
     let fetchLimit: number | undefined = undefined;
-    if (typeof limit === "string" && !isNaN(Number(limit))) {
+    if (typeof limit === 'string' && !isNaN(Number(limit))) {
       fetchLimit = Number(limit);
     }
 
     const restaurants = await Restaurant.findAll({
-      order: [["createdAt", sortDirection]],
+      order: [['createdAt', sortDirection]],
       ...(fetchLimit ? { limit: fetchLimit } : {}),
     });
     return res.status(200).json({ data: restaurants });
@@ -103,14 +103,14 @@ export const getRestaurant = async (req: Request, res: Response) => {
       where: { slug },
     };
 
-    if (includeTables === "true") {
-      findOptions.include = [{ model: Table, as: "tables" }];
+    if (includeTables === 'true') {
+      findOptions.include = [{ model: Table, as: 'tables' }];
     }
 
     const restaurant = await Restaurant.findOne(findOptions);
 
     if (!restaurant) {
-      return res.status(404).json({ error: "Restaurant not found" });
+      return res.status(404).json({ error: 'Restaurant not found' });
     }
 
     return res.status(200).json({ data: restaurant });
@@ -123,17 +123,59 @@ export const getRestaurantTables = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
 
-    const restaurant = await Restaurant.findOne({ where: { slug: slug } });
+    const restaurant = await Restaurant.findOne({ where: { slug } });
     if (!restaurant) {
-      return res.status(404).json({ error: "Restaurant not found" });
+      return res.status(404).json({ error: 'Restaurant not found' });
     }
 
     const tables = await Table.findAll({
       where: { restaurantId: restaurant.id },
-      order: [["tableNumber", "ASC"]],
+      order: [['tableNumber', 'ASC']],
     });
 
     return res.status(200).json({ data: tables });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Add a table to a restaurant by SLUG
+ */
+export const addTable = async (req: any, res: any) => {
+  try {
+    const { slug } = req.params;
+    const { tableNumber, capacity } = req.body;
+
+    const restaurant = await Restaurant.findOne({ where: { slug } });
+    if (!restaurant) {
+      return res.status(404).json({ error: 'Restaurant not found' });
+    }
+
+    const tables = await Table.findAll({
+        where: { restaurantId: restaurant.id }
+    })
+
+    // should not be able to add another table if tables contain up to number of totalTables the restaurant have
+    if (tables.length === restaurant.totalTables || tables.length > restaurant.totalTables) {
+        return res.status(400).json({ error: 'Restaurant already has total tables' });
+    }
+
+    const tableNo = tables.find(table => table.tableNumber === tableNumber);
+
+    if (tableNo) {
+        return res.status(400).json({ error: 'You have already created this table' });
+    }
+
+    const table = await Table.create({
+      restaurantId: restaurant.id,
+      tableNumber,
+      capacity,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return res.status(201).json({ data: table });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
