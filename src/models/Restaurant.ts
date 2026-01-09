@@ -32,11 +32,13 @@ Restaurant.init(
       validate: {
         notEmpty: true,
       },
+      unique: true,
     },
     slug: {
       type: DataTypes.STRING,
       allowNull: false,
       field: "slug",
+      unique: true,
     },
     openingTime: {
       type: DataTypes.STRING,

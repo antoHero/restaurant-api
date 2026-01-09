@@ -39,7 +39,7 @@ const startServer = async () => {
     await initDb();
 
     // 2. Run Migrations (Schema + Seeds)
-    await runMigrations();
+    // await runMigrations();
 
     // 3. Start Listening
     app.listen(PORT, () => {
