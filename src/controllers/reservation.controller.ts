@@ -100,11 +100,9 @@ export const createReservation = async (req: any, res: any) => {
 
     if (start < new Date()) {
       await t.rollback();
-      return res
-        .status(400)
-        .json({
-          error: "Cannot create a reservation for a past date or time.",
-        });
+      return res.status(400).json({
+        error: "Cannot create a reservation for a past date or time.",
+      });
     }
 
     durationMinutes = handlePeakHours(start, durationMinutes);
@@ -279,7 +277,7 @@ export const checkAvailability = async (req: any, res: any) => {
       table: availableTable,
       message: availableTable
         ? "Table is free"
-        : "No tables free for this duration",
+        : "No tables free for this party size",
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -344,32 +342,95 @@ export const getAvailableSlots = async (req: any, res: any) => {
   // #swagger.tags = ['Reservation']
   try {
     const { slug, partySize, date } = req.query;
-    const restaurant = await Restaurant.findOne({ where: { slug } });
+    const restaurant = await Restaurant.findOne({
+      where: { slug },
+      include: [{ model: Table, as: "tables" }],
+    });
+
     if (!restaurant)
       return res.status(404).json({ error: "Restaurant not found" });
 
-    const slots = [];
+    const durationMinutes = 90;
+    const intervalMinutes = 30;
+
     const [openH, openM] = restaurant.openingTime.split(":").map(Number);
     const [closeH, closeM] = restaurant.closingTime.split(":").map(Number);
 
-    let current = new Date(`${date}T${restaurant.openingTime}:00Z`);
-    const endOfDay = new Date(`${date}T${restaurant.closingTime}:00Z`);
+    const startOfDay = new Date(`${date}T00:00:00Z`);
+    const openingTime = new Date(startOfDay);
+    openingTime.setUTCHours(openH, openM, 0, 0);
+    const closingTime = new Date(startOfDay);
+    closingTime.setUTCHours(closeH, closeM, 0, 0);
 
-    // Increment by 30 mins
-    while (current < endOfDay) {
-      const table = await findAvailableTable(
-        restaurant.id,
-        current,
-        90,
-        partySize
-      );
-      if (table) {
-        slots.push(current.toISOString());
-      }
-      current = new Date(current.getTime() + 30 * 60000);
+    const now = new Date();
+    let searchStart = new Date(openingTime);
+
+    // Boundary check: If user checks for today, start from now
+    const isToday =
+      now.getUTCFullYear() === startOfDay.getUTCFullYear() &&
+      now.getUTCMonth() === startOfDay.getUTCMonth() &&
+      now.getUTCDate() === startOfDay.getUTCDate();
+
+    if (isToday && now > searchStart) {
+      searchStart = new Date(now);
+      const roundedMins =
+        Math.ceil(searchStart.getUTCMinutes() / intervalMinutes) *
+        intervalMinutes;
+      searchStart.setUTCMinutes(roundedMins, 0, 0);
     }
 
-    return res.json({ date, partySize, availableSlots: slots });
+    if (searchStart >= closingTime)
+      return res.json({
+        date,
+        slots: [],
+        message: "Restaurant is closed for the day.",
+      });
+
+    const suitableTables = (restaurant as any).tables.filter(
+      (t: any) => t.capacity >= Number(partySize)
+    );
+    if (suitableTables.length === 0)
+      return res.json({
+        date,
+        slots: [],
+        message: "No tables available for this party size.",
+      });
+
+    const dayReservations = await Reservation.findAll({
+      where: {
+        restaurantId: restaurant.id,
+        status: "confirmed",
+        startDateTime: {
+          [Op.between]: [
+            new Date(openingTime.getTime() - 240 * 60000),
+            new Date(closingTime.getTime() + 240 * 60000),
+          ],
+        },
+      },
+    });
+
+    const slots = [];
+    let current = new Date(searchStart);
+
+    while (
+      current.getTime() + durationMinutes * 60000 <=
+      closingTime.getTime()
+    ) {
+      const slotEnd = new Date(current.getTime() + durationMinutes * 60000);
+      const isAvailable = suitableTables.some((table: any) => {
+        const tableRes = dayReservations.filter((r) => r.tableId === table.id);
+        return !tableRes.some((r: any) => {
+          const rs = new Date(r.startDateTime);
+          const re = new Date(rs.getTime() + r.durationMinutes * 60000);
+          return current < re && slotEnd > rs;
+        });
+      });
+
+      if (isAvailable) slots.push(current.toISOString());
+      current = new Date(current.getTime() + intervalMinutes * 60000);
+    }
+
+    return res.json({ date, partySize, slots });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
@@ -378,15 +439,24 @@ export const getAvailableSlots = async (req: any, res: any) => {
 export const getReservationsByDate = async (req: any, res: any) => {
   // #swagger.tags = ['Reservation']
   try {
-    const { restaurantId } = req.query;
-    const { date } = req.params; // Expects YYYY-MM-DD
+    const { date, slug } = req.params; // Expects YYYY-MM-DD
 
     const startDate = new Date(`${date}T00:00:00Z`);
     const endDate = new Date(`${date}T23:59:59Z`);
 
+    const restaurant = await Restaurant.findOne({
+      where: {
+        slug,
+      },
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found!" });
+    }
+
     const reservations = await Reservation.findAll({
       where: {
-        restaurantId,
+        restaurantId: restaurant.id,
         startDateTime: {
           [Op.between]: [startDate, endDate],
         },
@@ -404,16 +474,122 @@ export const getReservationsByUniqueReference = async (req: any, res: any) => {
   // #swagger.tags = ['Reservation']
   try {
     const { reference } = req.query;
+    const { slug } = req.params;
+
+    const restaurant = await Restaurant.findOne({
+      where: {
+        slug,
+      },
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found!" });
+    }
 
     const reservation = await Reservation.findOne({
       where: {
         uniqueReference: reference,
+        restaurantId: restaurant.id,
       },
       include: [{ model: Table, as: "table" }],
     });
 
     return res.json({ data: reservation });
   } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const cancelReservation = async (req: any, res: any) => {
+  // #swagger.tags = ['Reservation']
+  const t = await sequelize.transaction();
+  try {
+    const { reference } = req.params;
+    const reservation = await Reservation.findOne({
+      where: { uniqueReference: reference },
+    });
+    if (!reservation) {
+      await t.rollback();
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+    reservation.status = "cancelled";
+    await reservation.save({ transaction: t });
+    await t.commit();
+    return res.json({ message: "Reservation cancelled" });
+  } catch (error: any) {
+    await t.rollback();
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const modifyReservation = async (req: any, res: any) => {
+  // #swagger.tags = ['Reservation']
+  const t = await sequelize.transaction();
+  try {
+    const { reference } = req.params;
+    const { startDateTime, partySize, durationMinutes } = req.body;
+    const reservation = await Reservation.findOne({
+      where: { uniqueReference: reference },
+      include: [{ model: Restaurant, as: "restaurant" }],
+    });
+    if (!reservation) {
+      await t.rollback();
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+
+    if (reservation.status === "cancelled") {
+        await t.rollback();
+        return res.status(404).json({ error: "You cannot modify a cancelled reservation. Book another one!" });
+      }
+    const newStart = startDateTime
+      ? new Date(startDateTime)
+      : new Date(reservation.startDateTime);
+    const newSize = partySize || reservation.partySize;
+    const newDuration = durationMinutes || reservation.durationMinutes;
+    const restaurant = await Restaurant.findByPk(reservation.restaurantId, {
+      include: [{ model: Table, as: "tables" }],
+    });
+    const suitableTables = (restaurant as any).tables
+      .filter((t: any) => t.capacity >= newSize)
+      .sort((a: any, b: any) => a.capacity - b.capacity);
+    let assignedTableId = null;
+    const end = new Date(newStart.getTime() + newDuration * 60000);
+    for (const table of suitableTables) {
+      const existing = await Reservation.findAll({
+        where: {
+          tableId: table.id,
+          status: { [Op.ne]: "cancelled" },
+          id: { [Op.ne]: reservation.id },
+        },
+      });
+      if (
+        !existing.some((r: any) => {
+          const rs = new Date(r.startDateTime);
+          const re = new Date(rs.getTime() + r.durationMinutes * 60000);
+          return newStart < re && end > rs;
+        })
+      ) {
+        assignedTableId = table.id;
+        break;
+      }
+    }
+    if (!assignedTableId) {
+      await t.rollback();
+      return res.status(400).json({ error: "No tables available" });
+    }
+    await reservation.update(
+      {
+        startDateTime: newStart,
+        partySize: newSize,
+        durationMinutes: newDuration,
+        tableId: assignedTableId,
+      },
+      { transaction: t }
+    );
+    await t.commit();
+    return res.json({ data: reservation });
+  } catch (error: any) {
+    if (t) await t.rollback();
     return res.status(500).json({ error: error.message });
   }
 };
