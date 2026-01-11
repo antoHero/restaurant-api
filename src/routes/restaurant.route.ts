@@ -1,26 +1,15 @@
-import * as express from "express";
-import { Request, Response } from "express";
+import * as express from 'express';
+import { Request, Response } from 'express';
+import { validate } from '../middleware/validate.js';
+import { addTableSchema, createRestaurantSchema, getAvailableTablesSchema, getRestaurantSchema, getRestaurantsSchema } from '../schemas/restaurant.schema.js';
+import * as RestaurantController from '../controllers/restaurant.controller.js';
 
 const router = express.Router();
 
-router.post("/restaurants", async (req: Request, res: Response) => {
-  // #swagger.tags = ['Restaurant']
-  res.status(501).json({ message: "Create restaurant logic pending" });
-});
-
-router.post("/api/restaurants/:id/tables", async (req: Request, res: any) => {
-  // #swagger.tags = ['Restaurant']
-  res.status(501).json({ message: "Add tables logic pending" });
-});
-
-router.get("/restaurants", async (req: Request, res: Response) => {
-  // #swagger.tags = ['Restaurant']
-  res.status(200).json({ message: "Working", data: [] });
-});
-
-router.get("/api/restaurants/:id", async (req: Request, res: any) => {
-  // #swagger.tags = ['Restaurant']
-  res.status(501).json({ message: "Get restaurant logic pending" });
-});
+router.post('/restaurants', validate(createRestaurantSchema), RestaurantController.createRestaurant);
+router.post('/restaurants/:slug/tables', validate(addTableSchema), RestaurantController.addTable);
+router.get('/restaurants', validate(getRestaurantsSchema), RestaurantController.getRestaurants);
+router.get('/restaurants/:slug', validate(getRestaurantSchema), RestaurantController.getRestaurant);
+router.get('/restaurants/:slug/available-tables', validate(getAvailableTablesSchema), RestaurantController.getAvailableTables);
 
 export default router;

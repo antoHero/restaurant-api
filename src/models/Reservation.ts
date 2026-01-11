@@ -1,25 +1,26 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 import {
   ReservationAttribute,
   ReservationCreationDTO,
-} from "../types/reservation.type";
+} from "../types/reservation.type.js";
 
 export class Reservation
   extends Model<ReservationAttribute, ReservationCreationDTO>
   implements ReservationAttribute
 {
-  public id!: number;
-  public uniqueReference!: string;
-  public restaurantId!: number;
-  public tableId!: number;
-  public customerName!: string;
-  public phone!: string;
-  public partySize!: number;
-  public startDateTime!: Date;
-  public durationMinutes!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare public id: number;
+  declare public uniqueReference: string;
+  declare public restaurantId: number;
+  declare public tableId: number;
+  declare public customerName: string;
+  declare public status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  declare public phone: string;
+  declare public partySize: number;
+  declare public startDateTime: Date;
+  declare public durationMinutes: number;
+  declare public readonly createdAt: Date;
+  declare public readonly updatedAt: Date;
 }
 
 Reservation.init(
@@ -61,6 +62,11 @@ Reservation.init(
     uniqueReference: {
       type: DataTypes.STRING,
       unique: true,
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'confirmed', 'completed', 'cancelled'),
+      allowNull: false,
+      defaultValue: 'pending',
     },
     createdAt: {
       type: DataTypes.DATE,

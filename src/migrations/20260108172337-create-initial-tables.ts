@@ -13,11 +13,13 @@ export default {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
       slug: {
         type: DataTypes.STRING,
         allowNull: false,
         field: "slug",
+        unique: true,
       },
       openingTime: {
         type: DataTypes.STRING,
@@ -86,6 +88,12 @@ export default {
       uniqueReference: {
         type: DataTypes.STRING,
         unique: true,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.ENUM('pending', 'confirmed', 'completed', 'cancelled'),
+        allowNull: false,
+        defaultValue: 'pending'
       },
       restaurantId: {
         type: DataTypes.INTEGER,

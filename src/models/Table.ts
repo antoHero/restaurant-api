@@ -1,17 +1,17 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../config/database";
-import { TableAttribute, TableCreationDTO } from "../types/table.type";
+import sequelize from "../config/database.js";
+import { TableAttribute, TableCreationDTO } from "../types/table.type.js";
 
 export class Table
   extends Model<TableAttribute, TableCreationDTO>
   implements TableAttribute
 {
-  public id!: number;
-  public restaurantId!: number;
-  public tableNumber!: number;
-  public capacity!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare public id: number;
+  declare public restaurantId: number;
+  declare public tableNumber: number;
+  declare public capacity: number;
+  declare public readonly createdAt: Date;
+  declare public readonly updatedAt: Date;
 }
 
 Table.init(

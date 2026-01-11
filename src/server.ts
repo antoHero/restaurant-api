@@ -1,12 +1,12 @@
 import express from 'express';
 import { Request, Response, NextFunction } from 'express';
-import { initDb } from './models/index';
-import { runMigrations } from './scripts/migrate';
+import { initDb } from './models/index.js';
+import { runMigrations } from './scripts/migrate.js';
 import swaggerUi from 'swagger-ui-express';
-import { restaurantRoutes, reservationRoutes } from './routes';
+import { restaurantRoutes, reservationRoutes } from './routes/index.js';
+import swaggerFile from './swagger-output.json' with { type: 'json' };
 
 const app = express();
-const swaggerFile = require('./swagger-output.json')
 const PORT = process.env.PORT || 9000;
 
 app.use(express.json() as any);

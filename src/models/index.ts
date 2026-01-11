@@ -1,8 +1,9 @@
 
-import sequelize from '../config/database';
-import { Restaurant } from './Restaurant';
-import { Table } from './Table';
-import { Reservation } from './Reservation';
+import sequelize from '../config/database.js';
+import { Restaurant } from './Restaurant.js';
+import { Table } from './Table.js';
+import { Reservation } from './Reservation.js';
+import { Waitlist } from './Waitlist.js';
 
 // Define Associations
 Restaurant.hasMany(Table, { foreignKey: 'restaurantId', as: 'tables' });
@@ -14,11 +15,16 @@ Reservation.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant'
 Table.hasMany(Reservation, { foreignKey: 'tableId', as: 'reservations' });
 Reservation.belongsTo(Table, { foreignKey: 'tableId', as: 'table' });
 
+Restaurant.hasMany(Waitlist, { foreignKey: 'restaurantId', as: 'waitlistEntries' });
+Waitlist.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
+
+
 export {
   sequelize,
   Restaurant,
   Table,
-  Reservation
+  Reservation,
+  Waitlist,
 };
 
 /**
@@ -31,7 +37,7 @@ export const initDb = async (): Promise<void> => {
     console.log('Database connection has been established successfully.');
     
     // Sync all models with the database
-    await sequelize.sync({ alter: true });
+    // await sequelize.sync({ alter: true });
     console.log('All models were synchronized successfully.');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
