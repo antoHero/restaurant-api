@@ -14,31 +14,23 @@ const sendNotification = (
 
 const isWithinOperatingHours = (
   dateTime: Date,
+  durationMinutes: number,
   opening: string,
   closing: string
 ) => {
-  const time = dateTime.getUTCHours() * 60 + dateTime.getUTCMinutes();
+  // Convert current time of day to minutes
+  const startMinutes = dateTime.getUTCHours() * 60 + dateTime.getUTCMinutes();
+  const endMinutes = startMinutes + durationMinutes;
 
   const [openH, openM] = opening.split(":").map(Number);
   const [closeH, closeM] = closing.split(":").map(Number);
 
-  if (
-    typeof openH !== "number" ||
-    isNaN(openH) ||
-    typeof openM !== "number" ||
-    isNaN(openM) ||
-    typeof closeH !== "number" ||
-    isNaN(closeH) ||
-    typeof closeM !== "number" ||
-    isNaN(closeM)
-  ) {
-    throw new Error("Invalid opening or closing time format");
-  }
+  const openingTimeInMinutes = openH * 60 + openM;
+  const closingTimeInMinutes = closeH * 60 + closeM;
 
-  const openMinutes = openH * 60 + openM;
-  const closeMinutes = closeH * 60 + closeM;
-
-  return time >= openMinutes && time <= closeMinutes;
+  return (
+    startMinutes >= openingTimeInMinutes && endMinutes <= closingTimeInMinutes
+  );
 };
 
 const generateUniqueReference = async () => {
@@ -78,7 +70,7 @@ const handlePeakHours = (dateTime: Date, requestedDuration: number): number => {
     const maxPeakDuration = 90;
     if (requestedDuration > maxPeakDuration) {
       console.log(
-        `⚠️ Peak hour detected. Capping duration at ${maxPeakDuration} minutes.`
+        `Peak hour detected. Capping duration at ${maxPeakDuration} minutes.`
       );
       return maxPeakDuration;
     }
@@ -105,21 +97,52 @@ export const createReservation = async (req: any, res: any) => {
     }
 
     const start = new Date(startDateTime);
-    // Apply Peak Hour Logic
+
+    if (start < new Date()) {
+      await t.rollback();
+      return res
+        .status(400)
+        .json({
+          error: "Cannot create a reservation for a past date or time.",
+        });
+    }
+
     durationMinutes = handlePeakHours(start, durationMinutes);
     const end = new Date(start.getTime() + durationMinutes * 60000);
 
-    // Operating Hours
+    const existingUserBookings = await Reservation.findAll({
+      where: {
+        phone,
+        restaurantId: restaurant.id,
+        status: "confirmed",
+      },
+    });
+
+    const hasUserConflict = existingUserBookings.some((r: any) => {
+      const rStart = new Date(r.startDateTime);
+      const rEnd = new Date(rStart.getTime() + r.durationMinutes * 60000);
+      return start < rEnd && end > rStart;
+    });
+
+    if (hasUserConflict) {
+      await t.rollback();
+      return res.status(400).json({
+        error:
+          "Double booking detected: You already have a confirmed reservation during this time slot.",
+      });
+    }
+
     if (
       !isWithinOperatingHours(
         start,
+        durationMinutes,
         restaurant.openingTime,
         restaurant.closingTime
       )
     ) {
       await t.rollback();
       return res.status(400).json({
-        error: `Restaurant is closed. Operating hours: ${restaurant.openingTime} - ${restaurant.closingTime}`,
+        error: `Reservation exceeds operating hours (${restaurant.openingTime} - ${restaurant.closingTime}). Please choose an earlier time or shorter duration.`,
       });
     }
 
@@ -203,24 +226,60 @@ export const createReservation = async (req: any, res: any) => {
 export const checkAvailability = async (req: any, res: any) => {
   // #swagger.tags = ['Reservation']
   try {
-    const { slug, partySize, startDateTime, durationMinutes } = req.query;
-    const restaurant = await Restaurant.findOne({ where: { slug } });
+    const { slug, partySize, startDateTime, durationMinutes = 90 } = req.query;
+    const restaurant = await Restaurant.findOne({
+      where: { slug },
+      include: [{ model: Table, as: "tables" }],
+    });
     if (!restaurant)
       return res.status(404).json({ error: "Restaurant not found" });
 
-    const start = new Date(startDateTime);
-    const table = await findAvailableTable(
-      restaurant.id,
-      start,
-      durationMinutes,
-      partySize
+    const start = new Date(startDateTime as string);
+    const duration = Number(durationMinutes);
+    const end = new Date(start.getTime() + duration * 60000);
+
+    if (
+      !isWithinOperatingHours(
+        start,
+        duration,
+        restaurant.openingTime,
+        restaurant.closingTime
+      )
+    ) {
+      return res.json({ available: false, reason: "Outside operating hours" });
+    }
+
+    const suitableTables = (restaurant as any).tables.filter(
+      (t: any) => t.capacity >= Number(partySize)
     );
+    let availableTable = null;
+
+    for (const table of suitableTables) {
+      const allRes = await Reservation.findAll({
+        where: {
+          tableId: table.id,
+          status: { [Op.ne]: "cancelled" },
+        },
+      });
+
+      const conflict = allRes.some((r: any) => {
+        const rStart = new Date(r.startDateTime);
+        const rEnd = new Date(rStart.getTime() + r.durationMinutes * 60000);
+        return start < rEnd && end > rStart;
+      });
+
+      if (!conflict) {
+        availableTable = table;
+        break;
+      }
+    }
 
     return res.json({
-      available: !!table,
-      restaurant: restaurant.name,
-      requestedTime: start.toISOString(),
-      partySize,
+      available: !!availableTable,
+      table: availableTable,
+      message: availableTable
+        ? "Table is free"
+        : "No tables free for this duration",
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
