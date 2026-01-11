@@ -1,5 +1,11 @@
 import { Op, where } from "sequelize";
-import { Restaurant, Reservation, Table, sequelize } from "../models/index.js";
+import {
+  Restaurant,
+  Reservation,
+  Table,
+  sequelize,
+  Waitlist,
+} from "../models/index.js";
 
 const sendNotification = (
   type: "SMS" | "Email",
@@ -538,9 +544,11 @@ export const modifyReservation = async (req: any, res: any) => {
     }
 
     if (reservation.status === "cancelled") {
-        await t.rollback();
-        return res.status(404).json({ error: "You cannot modify a cancelled reservation. Book another one!" });
-      }
+      await t.rollback();
+      return res.status(400).json({
+        error: "You cannot modify a cancelled reservation. Book another one!",
+      });
+    }
     const newStart = startDateTime
       ? new Date(startDateTime)
       : new Date(reservation.startDateTime);
@@ -590,6 +598,35 @@ export const modifyReservation = async (req: any, res: any) => {
     return res.json({ data: reservation });
   } catch (error: any) {
     if (t) await t.rollback();
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const joinWaitlist = async (req: any, res: any) => {
+  // #swagger.tags = ['Reservation']
+  const t = await sequelize.transaction();
+  try {
+    const { slug, customerName, phone, partySize, preferredDateTime } =
+      req.body;
+    const restaurant = await Restaurant.findOne({ where: { slug } });
+    if (!restaurant) {
+      await t.rollback();
+      return res.status(404).json({ error: "Restaurant not found" });
+    }
+    const waitlist = await Waitlist.create(
+      {
+        restaurantId: restaurant.id,
+        customerName,
+        phone,
+        partySize,
+        preferredDateTime: new Date(preferredDateTime),
+      },
+      { transaction: t }
+    );
+    await t.commit();
+    return res.status(201).json({ data: waitlist });
+  } catch (error: any) {
+    await t.rollback();
     return res.status(500).json({ error: error.message });
   }
 };

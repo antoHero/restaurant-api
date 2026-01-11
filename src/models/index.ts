@@ -3,6 +3,7 @@ import sequelize from '../config/database.js';
 import { Restaurant } from './Restaurant.js';
 import { Table } from './Table.js';
 import { Reservation } from './Reservation.js';
+import { Waitlist } from './Waitlist.js';
 
 // Define Associations
 Restaurant.hasMany(Table, { foreignKey: 'restaurantId', as: 'tables' });
@@ -14,11 +15,16 @@ Reservation.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant'
 Table.hasMany(Reservation, { foreignKey: 'tableId', as: 'reservations' });
 Reservation.belongsTo(Table, { foreignKey: 'tableId', as: 'table' });
 
+Restaurant.hasMany(Waitlist, { foreignKey: 'restaurantId', as: 'waitlistEntries' });
+Waitlist.belongsTo(Restaurant, { foreignKey: 'restaurantId', as: 'restaurant' });
+
+
 export {
   sequelize,
   Restaurant,
   Table,
-  Reservation
+  Reservation,
+  Waitlist,
 };
 
 /**

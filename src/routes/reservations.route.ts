@@ -8,15 +8,16 @@ import {
     getReservationsByDateSchema, 
     getReservationsByReferenceSchema, 
     cancelReservationSchema,
-    modifyReservationSchema
+    modifyReservationSchema,
+    joinWaitlistSchema
 } from '../schemas/reservation.schema.js';
 
 const router = express.Router();
 
-// #swagger.tags = ['Reservation']
 router.post('/reservations', validate(createReservationSchema), ReservationController.createReservation);
 router.get('/reservations/check', validate(checkAvailabilitySchema), ReservationController.checkAvailability);
 router.get('/reservations/slots', validate(getAvailableSlotsSchema), ReservationController.getAvailableSlots);
+router.post('/reservations/waitlist', validate(joinWaitlistSchema), ReservationController.joinWaitlist);
 router.get('/reservations/:slug', validate(getReservationsByReferenceSchema), ReservationController.getReservationsByUniqueReference);
 router.patch('/reservations/:reference/cancel', validate(cancelReservationSchema), ReservationController.cancelReservation);
 router.put('/reservations/:reference', validate(modifyReservationSchema), ReservationController.modifyReservation);
