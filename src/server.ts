@@ -34,24 +34,26 @@ app.use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerFile))
  * Bootstrap Server
  */
 const startServer = async () => {
-  try {
-    // 1. Initialize Database
-    await initDb();
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+        return;
+    }
+    try {
+        await initDb();
+        await runMigrations();
 
-    // 2. Run Migrations (Schema + Seeds)
-    await runMigrations();
-
-    // 3. Start Listening
-    app.listen(PORT, () => {
-      console.log('Restaurant API Server Ready');
-      console.log(`Listening on port ${PORT}`);
-      console.log('Migrations: Applied via Umzug');
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-  }
+        
+        app.listen(PORT, () => {
+            console.log('Restaurant API Server Ready');
+            console.log(`Listening on port ${PORT}`);
+            console.log('Migrations: Applied via Umzug');
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+    }
 };
 
-startServer();
+if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+    startServer();
+}
 
 export default app;

@@ -41,6 +41,9 @@ export const migrator = new Umzug({
 });
 
 export const runMigrations = async () => {
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
   try {
     console.log('--- Checking for Schema Migrations ---');
     const pending = await migrator.pending();
