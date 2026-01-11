@@ -9,7 +9,12 @@ A high-performance Node.js & Express API for managing restaurant table reservati
 npm install
 ```
 
-### 2. Database Setup
+### 2. Setup Environment
+```bash
+cp .env.example .env
+```
+
+### 3. Database Setup
 The project uses SQLite for development. Initialize the schema and seed data:
 ```bash
 # Run migrations
@@ -19,21 +24,22 @@ npm run migrate
 npm run seed
 ```
 
-### 3. Run the Application
+### 4. Generate Swagger API Docs
+```bash
+# Development mode with tsx
+npm run swagger
+```
+
+### 5. Run the Application
 ```bash
 # Development mode with tsx
 npm run dev
 ```
 
-### 3. Generate Swagger API Docs
-```bash
-# Development mode with tsx
-npm run swagger
-```
 The server will start on `http://localhost:3000` or `http://localhost:9000`. 
 Explore the interactive API docs at `http://localhost:3000/api-docs` or `http://localhost:9000/api-docs`.
 
-### 4. Run Tests
+### 6. Run Tests
 The suite includes critical path tests for double-booking prevention and availability logic.
 ```bash
 npm test
@@ -41,7 +47,7 @@ npm test
 
 ---
 
-## 🛠 API Documentation
+## API Documentation (Generate swagger docs to view all endpoints)
 
 ### Restaurant Management
 - **POST `/api/restaurants`**: Create a new restaurant profile.
@@ -69,7 +75,7 @@ npm test
 
 ---
 
-## 🧠 Design Decisions
+## Design Decisions
 
 1. **ACID Transactions**: Reservation creation is wrapped in a Sequelize transaction. This ensures that the "check-then-book" logic is atomic, preventing two users from grabbing the last table simultaneously.
 2. **Slug-Based Routing**: Uses URL-friendly slugs (e.g., `/pasta-palace`) instead of internal IDs to improve SEO and API readability.
@@ -92,7 +98,7 @@ Currently, the API supports multiple restaurants in one DB. To scale to thousand
 
 ---
 
-## ⚠️ Known Limitations & Future Improvements
+## Known Limitations & Future Improvements
 
 - **Current Limitations**: 
   - SQLite is single-process; multi-instance deployments require PostgreSQL.
