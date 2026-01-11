@@ -3,8 +3,24 @@ import { Request, Response, NextFunction } from 'express';
 import { initDb } from './models/index.js';
 import { runMigrations } from './scripts/migrate.js';
 import swaggerUi from 'swagger-ui-express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { restaurantRoutes, reservationRoutes } from './routes/index.js';
 import swaggerFile from './swagger-output.json' with { type: 'json' };
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let swaggerDocument: any;
+const swaggerPath = path.join(__dirname, './swagger-output.json');
+try {
+  if (fs.existsSync(swaggerPath)) {
+    swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));
+  }
+} catch (e) {}
+
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -15,8 +31,8 @@ app.use(express.json() as any);
  * REST API Routes
  */
 // Restaurant Management
-app.use('/api', restaurantRoutes);
-app.use('/api', reservationRoutes);
+app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/reservations', reservationRoutes);
 
 /**
  * Global Error Handler
@@ -34,24 +50,26 @@ app.use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerFile))
  * Bootstrap Server
  */
 const startServer = async () => {
-  try {
-    // 1. Initialize Database
-    await initDb();
+    if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+        return;
+    }
+    try {
+        await initDb();
+        await runMigrations();
 
-    // 2. Run Migrations (Schema + Seeds)
-    await runMigrations();
-
-    // 3. Start Listening
-    app.listen(PORT, () => {
-      console.log('Restaurant API Server Ready');
-      console.log(`Listening on port ${PORT}`);
-      console.log('Migrations: Applied via Umzug');
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-  }
+        
+        app.listen(PORT, () => {
+            console.log('Restaurant API Server Ready');
+            console.log(`Listening on port ${PORT}`);
+            console.log('Migrations: Applied via Umzug');
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+    }
 };
 
-startServer();
+if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+    startServer();
+}
 
 export default app;

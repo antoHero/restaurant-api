@@ -24,9 +24,9 @@ export const createRestaurant = async (req: Request, res: Response) => {
         .json({ message: "This restaurant already exists" });
     }
 
-    const slug = slugify.default(name, {
-      lower: true,
-    });
+    const slugifyFn = (slugify as any).default || slugify;
+
+    const slug = req.body.slug || slugifyFn(name, { lower: true, strict: true });
 
     const restaurant = await Restaurant.create(
       {

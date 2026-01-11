@@ -9,7 +9,8 @@
     "seed": "tsx src/seeders/seed.ts",
     "dev": "tsx src/server.ts",
     "build": "tsc",
-    "swagger": "node ./src/swagger.ts"
+    "swagger": "node ./src/swagger.ts",
+    "test": "NODE_ENV=development NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
@@ -33,11 +34,37 @@
     "@types/node": "^20.12.12",
     "@types/swagger-ui-express": "^4.1.8",
     "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "@types/jest": "^29.5.12",
+    "@types/supertest": "^6.0.2",
     "nodemon": "^3.1.11",
     "sequelize-cli": "^6.6.5",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/default-esm",
+    "testEnvironment": "node",
+    "verbose": true,
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true,
+          "isolatedModules": true
+        }
+      ]
+    },
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ]
   }
 }
