@@ -1,22 +1,22 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/database.js";
 import {
   RestaurantAttribute,
   RestaurantCreationDTO,
-} from "../types/restaurant.type";
+} from "../types/restaurant.type.js";
 
 export class Restaurant
   extends Model<RestaurantAttribute, RestaurantCreationDTO>
   implements RestaurantAttribute
 {
-  public id!: number;
-  public name!: string;
-  public slug!: string;
-  public openingTime!: string;
-  public closingTime!: string;
-  public totalTables!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare public id: number;
+  declare public name: string;
+  declare public slug: string;
+  declare public openingTime: string;
+  declare public closingTime: string;
+  declare public totalTables: number;
+  declare public readonly createdAt: Date;
+  declare public readonly updatedAt: Date;
 }
 
 Restaurant.init(
@@ -43,13 +43,13 @@ Restaurant.init(
     openingTime: {
       type: DataTypes.STRING,
       allowNull: false,
-      field: "opening_time",
+      // field: "opening_time",
       defaultValue: "09:00",
     },
     closingTime: {
       type: DataTypes.STRING,
       allowNull: false,
-      field: "closing_time",
+      // field: "closing_time",
       defaultValue: "22:00",
     },
     totalTables: {

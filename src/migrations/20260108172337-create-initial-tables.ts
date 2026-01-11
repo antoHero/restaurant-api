@@ -88,6 +88,12 @@ export default {
       uniqueReference: {
         type: DataTypes.STRING,
         unique: true,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.ENUM('pending', 'confirmed', 'completed', 'cancelled'),
+        allowNull: false,
+        defaultValue: 'pending'
       },
       restaurantId: {
         type: DataTypes.INTEGER,

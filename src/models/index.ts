@@ -1,8 +1,8 @@
 
-import sequelize from '../config/database';
-import { Restaurant } from './Restaurant';
-import { Table } from './Table';
-import { Reservation } from './Reservation';
+import sequelize from '../config/database.js';
+import { Restaurant } from './Restaurant.js';
+import { Table } from './Table.js';
+import { Reservation } from './Reservation.js';
 
 // Define Associations
 Restaurant.hasMany(Table, { foreignKey: 'restaurantId', as: 'tables' });

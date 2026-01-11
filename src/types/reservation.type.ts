@@ -7,6 +7,7 @@ export interface ReservationAttribute {
     tableId: number;
     customerName: string;
     phone: string;
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
     partySize: number;
     startDateTime: Date;
     durationMinutes: number;
